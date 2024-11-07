@@ -93,11 +93,48 @@ public class SellerDaoJdbc implements SellerDao {
 
     @Override
     public List<Seller> findAll() {
-        return List.of();
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+
+        List<Seller> result = new ArrayList<>();
+        Map<Integer, Department> departmentMap = new HashMap<>();
+
+        String sql = """
+                SELECT seller.*, department.Name AS DepName
+                FROM seller
+                INNER JOIN department ON seller.DepartmentId = department.Id
+                ORDER BY Name""";
+
+        try {
+            preparedStatement = connection.prepareStatement(sql);
+
+            resultSet = preparedStatement.executeQuery();
+
+            while (resultSet.next()) {
+
+                int departmentId = resultSet.getInt("DepartmentId");
+                Department newDepartment = departmentMap.get(departmentId);
+
+                if (newDepartment == null) {
+                    newDepartment = instantiateDepartment(resultSet);
+                    departmentMap.put(departmentId, newDepartment);
+                }
+
+                result.add(instantiateSeller(resultSet, newDepartment));
+            }
+
+            return result;
+
+        } catch (SQLException exception) {
+            throw new DbException(exception.getMessage());
+        } finally {
+            DB.closeResultSet(resultSet);
+            DB.closeStatement(preparedStatement);
+        }
     }
 
     @Override
-    public List<Seller> findByDepartment(Department department) {
+    public List<Seller> findByDepartmentId(Integer departmentId) {
         PreparedStatement preparedStatement = null;
         ResultSet resultSet = null;
 
@@ -114,18 +151,18 @@ public class SellerDaoJdbc implements SellerDao {
         try {
             preparedStatement = connection.prepareStatement(sql);
 
-            preparedStatement.setInt(1, department.getId());
+            preparedStatement.setInt(1, departmentId);
 
             resultSet = preparedStatement.executeQuery();
 
             while (resultSet.next()) {
 
-                int departmentId = resultSet.getInt("DepartmentId");
-                Department newDepartment = departmentMap.get(departmentId);
+                int newDepartmentId = resultSet.getInt("DepartmentId");
+                Department newDepartment = departmentMap.get(newDepartmentId);
 
                 if (newDepartment == null) {
                     newDepartment = instantiateDepartment(resultSet);
-                    departmentMap.put(departmentId, newDepartment);
+                    departmentMap.put(newDepartmentId, newDepartment);
                 }
 
                 result.add(instantiateSeller(resultSet, newDepartment));
