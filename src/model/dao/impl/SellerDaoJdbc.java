@@ -10,7 +10,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SellerDaoJdbc implements SellerDao {
 
@@ -40,10 +43,11 @@ public class SellerDaoJdbc implements SellerDao {
         PreparedStatement preparedStatement = null;
         ResultSet resultSet = null;
 
-        String sql = "SELECT seller.*, department.Name AS DepName\n" +
-                "FROM seller\n" +
-                "INNER JOIN department ON seller.DepartmentId = department.Id\n" +
-                "WHERE seller.id = ?";
+        String sql = """
+                SELECT seller.*, department.Name AS DepName
+                FROM seller
+                INNER JOIN department ON seller.DepartmentId = department.Id
+                WHERE seller.id = ?""";
 
         try {
             preparedStatement = connection.prepareStatement(sql);
@@ -90,5 +94,50 @@ public class SellerDaoJdbc implements SellerDao {
     @Override
     public List<Seller> findAll() {
         return List.of();
+    }
+
+    @Override
+    public List<Seller> findByDepartment(Department department) {
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+
+        List<Seller> result = new ArrayList<>();
+        Map<Integer, Department> departmentMap = new HashMap<>();
+
+        String sql = """
+                SELECT seller.*, department.Name AS DepName
+                FROM seller
+                INNER JOIN department ON seller.DepartmentId = department.Id
+                WHERE DepartmentId = ?
+                ORDER BY Name""";
+
+        try {
+            preparedStatement = connection.prepareStatement(sql);
+
+            preparedStatement.setInt(1, department.getId());
+
+            resultSet = preparedStatement.executeQuery();
+
+            while (resultSet.next()) {
+
+                int departmentId = resultSet.getInt("DepartmentId");
+                Department newDepartment = departmentMap.get(departmentId);
+
+                if (newDepartment == null) {
+                    newDepartment = instantiateDepartment(resultSet);
+                    departmentMap.put(departmentId, newDepartment);
+                }
+
+                result.add(instantiateSeller(resultSet, newDepartment));
+            }
+
+            return result;
+
+        } catch (SQLException exception) {
+            throw new DbException(exception.getMessage());
+        } finally {
+            DB.closeResultSet(resultSet);
+            DB.closeStatement(preparedStatement);
+        }
     }
 }
