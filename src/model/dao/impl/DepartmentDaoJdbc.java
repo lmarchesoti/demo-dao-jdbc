@@ -99,8 +99,7 @@ public class DepartmentDaoJdbc implements DepartmentDao {
             resultSet = preparedStatement.executeQuery();
 
             if (resultSet.next()) {
-                Department department = instantiateDepartment(resultSet);
-                return department;
+                return instantiateDepartment(resultSet);
             } else {
                 return null;
             }
