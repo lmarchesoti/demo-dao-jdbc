@@ -2,6 +2,7 @@ package model.dao.impl;
 
 import db.DB;
 import db.DbException;
+import db.DbIntegrityException;
 import model.dao.DepartmentDao;
 import model.entities.Department;
 
@@ -40,6 +41,8 @@ public class DepartmentDaoJdbc implements DepartmentDao {
                     int id = generatedKeys.getInt(1);
                     obj.setId(id);
                 }
+            } else {
+                throw new DbException("Unexpected Error! No rows affected!");
             }
         } catch (SQLException e) {
             throw new DbException(e.getMessage());
@@ -79,7 +82,7 @@ public class DepartmentDaoJdbc implements DepartmentDao {
             preparedStatement.setInt(1, id);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            throw new DbException(e.getMessage());
+            throw new DbIntegrityException(e.getMessage());
         } finally {
             DB.closeStatement(preparedStatement);
         }
